@@ -1,0 +1,476 @@
+<HTML>
+<HEAD>
+<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=windows-1252">
+<META NAME="Generator" CONTENT="gnu emacs">
+<title>Project 5: Kevin Bacon</title>
+<style type = "text/css">
+<!-- @import "http://www.cs.fsu.edu/~lacher/styles/RCLstyle1.css"; -->
+</style>
+</HEAD>
+<body link="black" vlink="black" alink="#808080">
+
+
+<!--
+<center>
+<h1><font color=#990000>
+CAUTION: This document is still under development.
+</font></h1>
+</center>
+-->
+
+<!--
+<h1><font color=#990000>
+This document is officially released and open for comment.
+</font></h1>
+-->
+
+<center>
+<h1>Project 5: Kevin Bacon</h1>
+</center>
+
+<center><h2><em>
+Finding degrees of separation
+</em></h2></center>
+
+<p>
+<b>Educational Objectives:</b>
+After completing this assignment, the student should be able to accomplish the
+following: 
+</p>
+
+<ul>
+<li>Describe and implement SymbolGraph</li>
+<li>Define bipartite graphs</li>
+<li>Explain the basic conclusions about path lengths in bipartite graphs</li>
+<li>Describe the back-end design for the Kevin Bacon game solver</li>
+<li>Propose other environments where a similar path game might be played</li>
+</ul>
+
+<p>
+<strong>Operational Objectives:</strong>
+Design and implement the class MovieMatch
+</p>
+
+<p><strong>Deliverables:</strong> Files:
+</P>
+
+<blockquote><pre>
+moviematch.h
+report.txt
+</pre></blockquote>
+
+<h2>Movie Distance and Kevin Bacon</h2>
+
+<p>
+The Kevin Bacon game is this: given an actor by name, what is his/her Kevin
+Bacon number? 
+</p>
+<p>
+To solve this we first need a clear definition of the Kevin Bacon number for an
+actor, or more generally, the <i>movie distance</i> between two actors. The
+definition is much like the path distance between two vertices in a graph,
+except using <i>movie chains</i> instead of edges.
+
+</p><blockquote><p>
+
+A <i>movie chain</i> from actor <i>x</i> to actor <i>y</i> is a sequence <i>m</i><sub>1</sub>
+<i>m</i><sub>2</sub> ... <i>m</i><sub><i>k</i></sub> such that 
+<ol>
+<li><i>m</i><sub><i>j</i></sub> and <i>m</i><sub><i>j</i>+1</sub> have an actor
+in common for 0 &lt; <i>j</i> &lt; <i>k</i> </li>
+<li><i>x</i> is in movie <i>m</i><sub>1</sub></li>
+<li><i>y</i> is in movie <i>m</i><sub><i>k</i></sub></li>
+</ol>
+
+</p></blockquote><p>
+
+</p><blockquote><p>
+The <i>movie distance</i> md(<i>x</i>,<i>y</i>) is defined to be the number of movies
+in a shortest movie chain from <i>x</i> to <i>y</i>. If there is no movie chain
+from <i>x</i> to <i>y</i>, we define md(<i>x</i>,<i>y</i>) = infinity.
+</p>
+<p>
+The Kevin Bacon number of
+an actor <i>x</i> is the movie distance from <i>x</i> to Kevin Bacon.
+</p></blockquote><p>
+Some consequences are:
+<ol>
+<li>Kevin Bacon has Kevin Bacon number 0.</li>
+<li>In general, md(<i>x</i>,<i>x</i>) = 0 for any actor <i>x</i>.
+<li>All other actors have Kevin Bacon number at least 1.</li>
+<li>In general, if <i>x</i> != <i>y</i> and <i>x</i> and <i>y</i> are actors in the same movie, then md(<i>x</i>,<i>y</i>) = 1</li>
+<li>Movie distance satisfies the triangle inequality: md(<i>x</i>,<i>z</i>) &lt;= md(<i>x</i>,<i>y</i>) + md(<i>y</i>,<i>z</i>) </li>
+</ol>
+</p>
+
+<h2>The actor-movie graph</h2>
+
+<p>
+To solve the Kevin Bacon game (or any other similar game based on another actor)
+we use graphs. Specifically, create a graph in which both actors and movies are
+vertices, and insert an edge whenever an actor is in a movie. Thus each edge has
+an actor for one vertex and a movie for the other.
+</p>
+<p>
+A graph is said to be <i>bipartite</i> if the vertices can be colored
+with two colors, say red and blue, such that each edge has different colored
+vertices, that is, each edge goes between a blue vertex and a red
+vertex. Clearly the movie-actor graph is bipartite, with actors colored blue and
+movies colored red. 
+</p>
+<p>
+The following result is proved in discrete math courses and most books on graph theory:
+</p>
+<p>
+<b>Theorem.</b> In a bipartite graph, a path whose ends have the same color has
+an even number of edges.</p>
+<p>
+As a consequence, any path from one actor to another in the movie-actor graph
+has an even number of edges. If <i>P</i> is such a path, with length <i>n</i>,
+then <i>n</i> is even and <i>n</i>/2 is the number of movies passed through by
+<i>P</i>. If <i>P</i> is a shortest path from actor <i>x</i> to actor
+<i>y</i>, then <i>n</i>/2 is the movie distance from <i>x</i> to <i>y</i>. 
+(Note, in passing, that the path <i>P</i> has an <i>odd</i> number of vertices.)
+</p>
+<p>
+Thus to solve the Kevin Bacon game, we perform a Breadth-First survey from Kevin
+Bacon. The Breadth First Search Tree rooted at Kevin Bacon consists of shortest paths
+from Kevin Bacon to all other actors who have a finite Kevin Bacon
+number. Dividing the length of such a path by 2 yields the Kevin Bacon number
+for the actor at the other end of the path.
+</p>
+<p>
+In practical terms, we start at an actor <i>x</i> and follow the parent vertices
+of the BFS tree back to Kevin Bacon, counting the steps. Then divide this count
+by 2 to get the number.
+</p>
+<p>
+Note that the path itself provides documentation in the form of a list starting
+with <i>x</i> and then listing movie | actor in pairs until we are back to
+Kevin Bacon.
+</p>
+
+<h2>Procedural Requirements</h2>
+
+<ol type="1">
+
+<li><p>The official
+development | testing | assessment environment is 
+<tt>g++47 -std=c++11 -Wall -Wextra</tt> on the <tt>linprog</tt> machines.
+Code should compile without error or warning.
+</p></li>
+
+<li><p>Copy all files from <tt>LIB/proj5</tt>, including:
+</p><pre>
+kb.cpp          # client program plays Kevin Bacon game
+[moviematch.api  # shows public members of class] <font color=#990000>this file has been deleted</font>
+line.cpp        # contains implementation of Line()
+movies.txt      # movie DB
+movies_abbreviated.txt
+</pre>
+</l1>
+
+<li><p>
+Copy the file <tt>LIB/proj5/proj5submit.sh</tt> into your project
+directory, change its permissions to executable, and 
+submit the project by executing the script.
+</p>
+
+<p>
+<em><b>Warning:</b> Submit scripts do not work on the <tt>program</tt> and
+<tt>linprog</tt> servers. Use <tt>shell.cs.fsu.edu</tt> to submit projects. If you do
+not receive the second confirmation with the contents of your project, there has
+been a malfunction.</em>
+</p>
+</li>
+
+</ol>
+
+<h2>Code Requirements and Specifications - MovieMatch</h2>
+
+<ol>
+
+<li><p>
+MovieMatch should, at a minimum, provide services required by <tt>kb.cpp</tt>. This
+will require the following (partial) class definition:
+</p><pre>// types used
+typedef uint32_t                           Vertex;
+typedef fsu::String                        Name;
+typedef fsu::ALUGraph &lt;Vertex>             Graph;
+typedef fsu::BFSurvey &lt;Graph>              BFS;
+typedef hashclass::KISS&lt;Name>              Hash;
+typedef fsu::HashTable&lt;Name,Vertex,Hash>   AA; // associative array
+typedef fsu::Vector&lt;Name>                  Vector;
+
+class MovieMatch
+{
+public:
+       MovieMatch    ();
+  bool Load          (const char* filename);
+  bool Init          (const char* actor);
+  long MovieDistance (const char* actor);
+  void ShowPath      (std::ostream& os) const;
+  void ShowStar      (Name name, std::ostream& os) const;
+  void Hint          (Name name, std::ostream& os) const;
+  void Dump          (std::ostream& os) const;
+  ...
+};
+</pre>
+<p>
+</p>
+
+<p>
+</p></li>
+
+<li><p>The underlying graph should be built from the
+"database" provided in the text file <tt>movies.txt</tt>. Each line of this file
+represents a movie and the actors in the movie. Forward slash <tt>'/'</tt> is
+used to delimit the strings representing movie titles and actor names in each
+line. 
+</p></li>
+
+<li><p>The following helper function makes reading a movie DB file
+    somewhat straightforward:
+</p><pre>private:
+  static fsu::Vector&lt;Name> Line(std::ifstream& is)
+  {
+    fsu::String line;
+    char delim = '/';
+    line.GetLine(is);
+    char* name_buffer = new char [1+line.Size()];
+    size_t pos = 0, next = 0;
+    fsu::Vector&lt;Name> movie;
+    while (pos < line.Size())
+    {
+      next = line.Position(delim,pos);
+      for (size_t i = pos; i < next; ++i)
+      {
+        name_buffer[i - pos]= line[i];
+      }
+      name_buffer[next-pos] = '\0';
+      movie.PushBack(name_buffer);
+      pos = ++next; // skip delimiter
+    }
+    delete [] name_buffer;
+    return movie;
+  }
+...
+
+</pre><p>
+This function consumes a line of text from the stream and returns a vector whose
+elements are the names delimited by '/'. The first element is then a movie title
+and all other elements are actors in that movie. Note that you are not required
+to use this - it can be optimized away - but it can be helpful in a draft to
+postpone read issues until the main functionality is built. 
+</p></li>
+
+<li><p><b>bool Load (const char* filename)</b><br>
+This method uses the data in the file to build the underlying symbol graph for
+    the game. The symbol graph consists of these private members:
+</p><pre>private:
+  ...
+  Graph  g_;
+  Vector name_;
+  AA     vrtx_;
+  2...
+</pre><p>
+name_ is a mapping: {vertices} -> {names}, and vrtx_ is a mapping: {names} ->
+{vertices}.  Even though Vector and AA are very different structurally, they
+perform as mappings in the abstract, each using its bracket operator as function
+evaluation. These mappings are required to be mutually inverses of the other:
+For any vertex <tt>v</tt>, <tt>vrtx_[name_[v]] == v</tt> and for any name <tt>n</tt> <tt>name_[vrtx_[n]] == n</tt>.
+</p><p>
+Load must look at each name encountered (movie or actor) and, if and only if
+that name is not already encountered, record it as a new vertex. Then Load must
+add an edge <tt>[a,m]</tt> to <tt>g_</tt> whenever <tt>a</tt> is an actor in movie <tt>m</tt>.
+</p><p>
+It is advisable to allow Load to read the file twice: First to establish the
+vertices and the two mappings <tt>vrtx_</tt> and <tt>name_</tt>; and second to insert all of the
+edges. Function <tt>Line()</tt> will be handy for these steps.
+</p></li>
+
+<li><p><b>bool Init(const char* actor)</b><br>
+This method establishes actor as the base actor in the game (i.e., the "Kevin
+Bacon") and performs a BFS from the base actor in the graph. This BFS 
+    searches only from the base_actor vertex (not a full survey) and records
+    all the parent info for use later during game play. The BFS survey data is
+    thus required to be persistent, so it is maintained as a BFSurvey object:
+</p><pre>private:
+  ...
+  BFS bfs_;
+  ...
+</pre><p>
+</p></li>
+
+<li><p><b>long MovieDistance (const char* actor)</b><br>
+This method uses the pre-computed BFS tree to (1) determine whether actor is in
+    the DB and retrieve its vertex if so (<tt>if
+      (vrtx_.Retrieve(actor,v))</tt>), (2) determine whether actor is reachable
+    from the base actor (<tt>if (bfs_.Color()[v] == 'b')</tt>). In that case, it (3) computes
+    the path from actor to base actor (storing the path as it goes) and returns
+    the move distance. The path is stored in the class member
+</p><pre>private:
+  ...
+  fsu::List&lt;Vertex>  path_;
+  ...
+</pre><p>
+MovieDistance returns -3 when the entered name is not in the DB, -2 when the
+name is
+not reachable from the base actor, -1 when the name entered is a movie (not an
+actor), and otherwise the movie distance between
+actor and base_actor.
+</p></li>
+
+<li><p><b>void ShowPath (std::ostream& os) const</b><br>
+This method outputs the entire path as an actor-movie chain connecting actor_to
+    baseActor_ This is used to document the movie distance number. See <tt>area51/kb.x</tt>
+    for suggested behavior.
+</p></li>
+
+<li><p><b>void ShowStar (Name name, std::ostream& os) const</b><br>
+This method outputs the name stored in actor_ (which might be a movie...)
+    followed by the names of all vertices that are adjacent to actor_ in the
+    graph. This is implemented using an AdjIterator:
+</p><pre>    typename fsu::ALUGraph<Vertex>::AdjIterator i;
+</pre><p>
+    See <tt>area51/kb.x</tt> for suggested behavior.
+</p></li>
+
+<li><p><b>void Hint (Name name, std::ostream& os) const</b><br>
+This method provides hints intended to be helpful when a name is not found in
+    the DB. See <tt>area51/kb.x</tt> for one idea on behavior.
+ </p></li>
+
+<li><p><b>void Dump (std::ostream& os) const</b><br>
+This method, as expected, depicts the internal structure of the MovieMatch
+    objects. The demonstration program <tt>area51/kb.x</tt> uses this implementation:
+</p><pre>
+  void Dump(std::ostream& os)
+  {
+    ShowAL(g_,os);
+    WriteData(bfs_,os);
+    vrtx_.Dump(os);
+    for (size_t i = 0; i &lt; name_.Size(); ++i)
+    {
+      os &lt;&lt; "name_[" &lt;&lt; i &lt;&lt; "] = " &lt;&lt; name_[i] &lt;&lt; '\t';
+      os &lt;&lt; "vrtx_[" &lt;&lt; name_[i] &lt;&lt; "] = " &lt;&lt; vrtx_[name_[i]] &lt;&lt; '\n';
+    }
+    vrtx_.Analysis(std::cout);
+}
+</pre><p>
+<tt>ShowAL</tt> and <tt>WriteData</tt> are in <tt>graph_util.h</tt> and <tt>survey_util.h</tt>,
+respectively. <tt>vrtx_.Dump()</tt> and <tt>vrtx_.Analysis()</tt> are calls to the HashTable
+API. The for loop shows the two mappings. Every one of these has proved helpful
+tracking down a bug!
+</p></li>
+
+<li><p><b>kb.cpp</b><br>
+This client program is supplied. Note that it utilizes the entire API discussed
+    above. The program #includes source code for all helpers in the library, so
+    it can be compiled with one call to g++.
+</p></li>
+
+</ol>
+
+
+<h2>Hints</h2>
+
+<ul>
+
+<li><p>
+It is highly recommended to construct some tiny fake movies files. Spend a few
+minutes creating these to model specifc cases of graph structure, accessibility,
+and redundancy. Keep a hand drawing of the symbol graphs for these examples so
+that the Dump output can be hand-traced. Note that Dump is called by kb.cpp when
+there is a third command line argument:
+</p><pre>
+kb.x m_test.1 name   # runs kb.x with DB = m_test.1 and base actor = name 
+kb.x m_test.1 name y # same as above, with a call to Dump after Load and Init
+</pre><p>
+It is also advisable to read the source code <tt>kb.cpp</tt> to understand what
+it is asking your MovieMatch object to do.
+</p></li>
+
+<li><p>When you need a string with blanks in it to be read as a single command
+    line argument, enclose it in single quotes:
+</p><pre>
+kb.x movies.txt 'Bacon, Kevin'  # runs kb.x with base actor = 'Bacon, Kevin' 
+</pre><p>
+
+</p></li>
+
+<li><p>
+Here is a partial list of technologies used in this project:
+</p><pre>graphs
+graph search &amp; survey
+path computation in graphs
+associative arrays [hash tables]
+generic optimized quicksort
+generic binary search
+</pre><p>
+(The last two are optionally used by Hint().)
+</p></li>
+
+
+<li><p>
+Be careful to keep  in mind the dual personality of the AA bracket operator: aa[key]
+behaves as "insert key" when key is not in the table. In a const environment you
+are protected. The const bracket operator will be called and fail if you
+accidentally use it in insert mode. You can use the const method
+HashTable::Retrieve to probe whether a name is already a key in the
+AA. Otherwise, it is advised to use the AA bracket operator for readability.
+</p></li>
+
+<li><p>
+Load time can be an issue. kb.cpp has a built-in timer for the load operation, and
+we'll run a contest of sorts on this measure. In designing your Load function,
+be aware of runtime in every step of the plan. There are a lot of places
+where choosing one direction over another can have a dramatic affect on Load time.
+</p>
+<p>
+The supplied executable area51/kb.x requires about 0.41 seconds to load
+movies_abbreviated.txt (190 movies and 10,190 actors) and 4.25 seconds
+to load movies.txt (4,188 movies and 115,241 actors). Note that the two ratios
+4.25/0.41 and (4188 + 115241)/(190+10190) are approximately equal, informally
+indicating linear runtime growth. 
+</p><p>
+Nevertheless there are aspects to the Load process (as implemented for kb.x)
+that can be optimized to reduce the load time.
+</p></li>
+
+<li><p> The implementation of Hint that is illustrated in area51/kb.x uses yet
+another item we have worked on: g_quick_sort_3w_opt. This generic algorithm is
+used to sort a vector hint_ which is built during the first read loop and
+consists of all names (actor and movie names). This sort is done after the
+graph has been established. (We do the sort as part of Init so it doesn't add to
+Load runtime.)
+</p>
+<p>
+Once hint_ is sorted, the generic binary search algorithms can be used to
+locate small ranges in the vector surrounding an input name.
+</p>
+<p>
+Hint() is needed because it is difficult to recall the exact name of an
+actor. For example, "Wayne, John" is not found in the DB ... Huh? ... ok, the
+hint shows us he is officially "Wayne, John (I)".
+</p>
+<p>
+Note BTW that you can mouse-select an entire line of Hint output on screen and
+"paste selection" will pipe the selection directly into input for a running kb.x.
+</p></li>
+
+<li><p>
+Aside from bragging rights for "best load time" (self-reported on Blackboard),
+style points can be awarded for "intuitive hints" (AI anyone?) and for finding
+an actor with maximal Kevin Bacon number (again, self-report to Blackboard).
+</p></li>
+
+<li><p>
+The Kevin Bacon number of an actor using movies_abbreviated.txt is not
+necessarily the actual Kevin Bacon number. (Explain this.)
+</p></li>
+
+
+
+</ul>
+
